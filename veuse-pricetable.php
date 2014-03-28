@@ -12,8 +12,6 @@ Domain Path: /languages
 Tags: pricetable
 */
 
-__('Veuse Pricetale', 'veuse-priceitem' ); /* Dummy call for plugin name translation. */
-
 
 class VeusePricetable {
 
@@ -23,8 +21,7 @@ class VeusePricetable {
 
 	function __construct() {
 	
-		
-		
+
 		$this->strVeusePricetableURI  = plugin_dir_url(__FILE__) ;
 		$this->strVeusePricetablePATH = plugin_dir_path(__FILE__) ;
 				
@@ -32,15 +29,35 @@ class VeusePricetable {
 	
 		add_action('init', array(&$this,'register_priceitem'));
 		
-		
-		
 		add_action('plugins_loaded', array(&$this,'veuse_priceitem_action_init'));
 		 
 		add_filter('manage_priceitem_posts_columns',  array ( $this,'veuse_priceitem_columns'));
 		add_action('manage_priceitem_posts_custom_column', array ( $this,'veuse_priceitem_custom_columns'), 10, 2 );
-
+		
+		add_action( 'admin_enqueue_scripts', array(&$this,'veuse_pricetable_admin_enqueue_scripts' ));
+		
+		add_action( 'wp_ajax_veuse_pricetable_update_post_order', array(&$this,'veuse_pricetable_update_post_order' ));
       
     }
+    
+    function veuse_pricetable_update_post_order($post_id) {
+		
+		global $wpdb;
+	
+		$post_type    = $_POST['posttype'];
+		$order        = $_POST['order'];
+	
+		foreach( $order as $menu_order => $post_id )
+		{
+			$post_id        = intval( str_ireplace( 'post-', '', $post_id ) );
+			echo $post_id;
+			$menu_order     = intval($menu_order);
+			wp_update_post( array( 'ID' => $post_id, 'menu_order' => $menu_order ) );
+		}
+	
+		die( '1' );
+	}
+
 	
 	/* Enqueue scripts
 	============================================= */
@@ -61,6 +78,13 @@ class VeusePricetable {
 
 	}
 	
+	/* Enqueue scripts */
+
+	function veuse_pricetable_admin_enqueue_scripts() {
+		wp_enqueue_script( 'jquery-ui-sortable' );
+		wp_enqueue_script( 'veuse-pricetable-admin-scripts', $this->strVeuseStaffURI . 'assets/js/veuse-pricetable-admin.js' );
+	}
+	
 	/* Localization
 	============================================= */
 	function veuse_priceitem_action_init() {
@@ -74,7 +98,7 @@ class VeusePricetable {
 	public function register_priceitem() {
 
 		$labels = array(
-	        'name' => __( 'Price Item', 'veuse-priceitem' ), // Tip: _x('') is used for localization
+	        'name' => __( 'Pricetable', 'veuse-priceitem' ), // Tip: _x('') is used for localization
 	        'singular_name' => __( 'Price Item', 'veuse-priceitem' ),
 	        'add_new' => __( 'New Price Item', 'veuse-priceitem' ),
 	        'add_new_item' => __( 'New Price Item','veuse-priceitem' ),
@@ -96,10 +120,10 @@ class VeusePricetable {
 					'_builtin' => false, // It's a custom post type, not built in
 					'_edit_link' => 'post.php?post=%d',
 					'capability_type' => 'post',
-					'hierarchical' => false,
+					'hierarchical' => true,
 					'rewrite' => array("slug" => "priceitem"), // Permalinks
 					'query_var' => "priceitem", // This goes to the WP_Query schema
-					'supports' => array('page-attributes'),
+					'supports' => array('permalink'),
 					'menu_icon' => 'dashicons-tag',
 					'menu_position' => 30,
 					'publicly_queryable' => false,
@@ -168,6 +192,10 @@ class VeusePricetable {
 						
 						break;
 					
+					case 'order' :
+				 	
+						echo '<a class="order-staff" style="padding:12px;cursor:move; float:right;"><img src="'.plugin_dir_url(__FILE__).'assets/images/icon-move.png" width="24" height=24" alt="Move"/></a>';						
+						break;
 			
 					
 			}			
@@ -180,7 +208,9 @@ class VeusePricetable {
 					"cb" => "<input type=\"checkbox\" />",
 					"title" => __("Title","veuse-priceitem"),
 					"description" => __("Description","veuse-priceitem"),
-					"pricetable" => __("Pricetable","veuse-priceitem")
+					"pricetable" => __("Pricetable","veuse-priceitem"),
+					"order" => __("Change order","veuse-priceitem")
+					
 			);
 			return $columns;
 		}
@@ -304,6 +334,9 @@ require_once(plugin_dir_path(__FILE__). 'widget.php');
 
 /* Post meta */
 require_once(plugin_dir_path(__FILE__). 'post-meta.php');
+
+/* Documentation */
+require_once(plugin_dir_path(__FILE__). '/documentation/documentation.php');
 
 
 
